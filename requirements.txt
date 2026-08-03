@@ -1,0 +1,16 @@
+# Framework Core
+Flask==3.0.0
+Flask-CORS==4.0.0
+
+# Base de Datos y ORM (Supabase)
+Flask-SQLAlchemy==3.1.1
+psycopg2-binary==2.9.9
+
+# Ciberseguridad
+argon2-cffi==23.1.0
+
+# Gestión de Entorno
+python-dotenv==1.0.0
+
+# Servidor de Producción (Requerido por Render)
+gunicorn==21.2.0
