@@ -32,7 +32,6 @@
         width: 100%;
         max-width: 400px;
         border: 1px solid rgba(250, 128, 114, 0.2);
-
     }
 
     h2{
@@ -53,10 +52,10 @@
         color: rgba(244, 246, 252, 0.8);
     }
 
-    input select {
+    input, select {
         width: 100%;
         padding: 12px;
-        border: 1px solid rbga(244, 246, 252, 0.3);
+        border: 1px solid rgba(244, 246, 252, 0.3);
         background: rgba(0, 50, 71, 0.5);
         color: var(--texto-claro);
         border-radius: 6px;
@@ -102,7 +101,7 @@
         display: none !important;
     }
 
-    /* Consola para ver la respuesta del servidor (Demostración de Ciberseguridad) */
+    /* Consola para ver la respuesta del servidor */
     .consola-log{
         margin-top: 1.5rem;
         padding: 15px;
@@ -124,41 +123,50 @@
         <div id="vista-login">
             <h2>Acceso a Flux Bank</h2>
             <form id="form-login">
-                <div class="from group">
+                <div class="form-group">
                     <label>Email</label>
                     <input type="email" id="login-email" required>
                 </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="login-password" required>
+                </div>
                 <button type="submit">Iniciar Sesión</button>
             </form>
-            <span class="toggle-link" onclick="cambiarVista('vista-login')">Volver al Login</span>
         </div>
 
         <!-- VISTA: DASHBOARD BANCARIO-->
-    </div id="vista-dashboard" class="oculto">
-        <h2>Panel de Transferencias</h2>
-        <p style="text-align: center; font-size: 0.8rem; margin-bottom: 20px;">ID Usuario: <span id="user-id-display"></span></p>
+        <div id="vista-dashboard" class="oculto">
+            <h2>Panel de Transferencias</h2>
+            <p style="text-align: center; font-size: 0.8rem; margin-bottom: 20px;">ID Usuario: <span id="user-id-display"></span></p>
 
-        <form id="form-transfer">
-            <div class="form-group">
-                <label>Cuenta de Destino (Ej: AR123456789)</label>
-                <input type="number" id="trans-amount" step="0.01" min="0.01" required>
-            </div>
-            <button type="submit">Ejecutar Transferencia Segura</button>
-        </form>
-        <div>
-    
+            <form id="form-transfer">
+                <div class="form-group">
+                    <label>Cuenta de Destino (Ej: AR123456789)</label>
+                    <input type="text" id="trans-receiver" required>
+                </div>
+                <div class="form-group">
+                    <label>Monto</label>
+                    <input type="number" id="trans-amount" step="0.01" min="0.01" required>
+                </div>
+                <button type="submit">Ejecutar Transferencia Segura</button>
+            </form>
+            <span class="toggle-link" onclick="cerrarSesion()">Cerrar Sesión</span>
+        </div>
+
+        <!-- CONSOLA DE AUDITORÍA -->
+        <pre id="consola" class="consola-log">Esperando acción...</pre>
     </div>
 
     <script>
         // --- CONFIGURACIÓN ---
-        // CAMBIAR EL LINK POR EL DE RENDER AL SUBIR FLASK (ej: "https://flux-api.onrender.com/api")
-        const API_BASE = "hhtp://127.0.0.1:5000/api";
+        // Apunta directamente a tu API 24/7 en Discloud
+        const API_BASE = "https://fluxbank.discloud.app/api";
         let sessionUserId = null;
 
         // --- FUNCIONES DE INTERFAZ ---
         function cambiarVista(idVista) {
             document.getElementById('vista-login').classList.add('oculto');
-            document.getElementById('vista-registro').classList.add('oculto');
             document.getElementById('vista-dashboard').classList.add('oculto');
             document.getElementById(idVista).classList.remove('oculto');
         }
@@ -171,93 +179,67 @@
         function cerrarSesion() {
             sessionUserId = null;
             cambiarVista('vista-login');
-            escribirConsola({ estado: "Sesión finalizada de forma segura." }, "Log de Autoría:");
+            escribirConsola({ estado: "Sesión finalizada de forma segura." }, "Log de Auditoría:");
         }
 
         // --- PETICIONES FETCH A LA API EN FLASK ---
 
-        // 1. REGISTRO
-        document.getElementById('form-registro').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        escribirConsola({ estado: "Enviar datos encriptados..." }, "Procesando:");
+        // 1. LOGIN
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            escribirConsola({ estado: "Validando Hash Argon2id..." }, "Procesando:");
 
-        const payload = {
-            email: document.getElementById('reg-email').value,
-            password: document.getElementById('reg-password').value,
-            role: document.getElementById('reg-role').value
-        };
+            const payload = {
+                email: document.getElementById('login-email').value,
+                password: document.getElementById('login-password').value,
+            };
 
-        try {
-            const responde = await fetch (`${API_BASE}/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
-            escribirConsola(data, `Estado HTTP: ${response.status}`);
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                escribirConsola(data, `Estado HTTP: ${response.status}`);
 
-            if (responde.ok) {
-                setTimeout(() => cambiarVista('vista-login'), 2000); // Manda al login si es exitoso
+                if (response.ok) {
+                    // Guardamos el ID del usuario en memoria para hacer transferencias
+                    sessionUserId = data.user_id;
+                    document.getElementById('user-id-display').innerText = sessionUserId.substring(0,8) + "...";
+                    setTimeout(() => cambiarVista('vista-dashboard'), 1500);
+                }
+            } catch (error) {
+                escribirConsola({ error: error.message }, "Error de Conexión:");
             }
-        }catch (error) {
-            escribirConsola({ error: error.message }, "Error de Conexión:");
-        }
-    });
+        });
 
-    // 2. LOGIN
-    document.getElementById('form-login').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        escribirConsola({ estado: "Valiente Hash Argon2id..." }, "Procesando:");
+        // 2. TRANSFERENCIA
+        document.getElementById('form-transfer').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            escribirConsola({ estado: "Aplicando bloqueo FOR UPDATE en la Base de Datos..."}, "Procesando Transacción ACID:");
 
-        const payload = {
-            email: document.getElementById('login-email').value,
-            password: document.getElementById('login-password').value,
-        };
+            const payload = {
+                sender_user_id: sessionUserId,
+                receiver_account_number: document.getElementById('trans-receiver').value,
+                amount: document.getElementById('trans-amount').value,
+                description: "Transferencia desde Frontend"
+            };
 
-        try {
-            const responde = await fetch(`${API_BASE}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await responde.json();
-            escribirConsola(data, `Estado HTTP: ${response.status}`)
-
-            if (responde.ok) {
-                // Guardamos el ID del usuario en memoria para hacer transferencias
-                sessionUserId = data.user_id;
-                document.getElementById('user-id-display').innerText = sessionUserId.substring(0,8) + "...";
-                setTimeout(() => cambiarVista('vista-dashboard'), 1500);
+            try {
+                const response = await fetch(`${API_BASE}/banking/transfer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                escribirConsola(data, `Estado HTTP: ${response.status} (Transacción Finalizada)`);
+            } catch (error) {
+                escribirConsola({ error: error.message }, "Error de Conexión:");
             }
-        } catch (error) {
-            escribirConsola({ error: error.message }, "Error de Conexión:");
-        }
-    });
-
-    // 3. TRANSFERENCIA
-    document.getElementById('form-transfer').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        escribirConsola({ estado: "Aplicación bloqueo FOR UPDATE en la Base de Datos..."}, "Procesando Transsacción ACID:");
-
-        const payload = {
-            sender_user_id: sessionUserId,
-            reciver_account_number: document.getElementById('trans-reciver').value,
-            amount: document.getElementById('trans-amount').value,
-            description: "Transferencia desde Frontend"
-        };
-
-        try {
-            const responde = await fetch(`${API_BASE}/banking/transfer`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await responde.json();
-            escribirConsola(data, `Estado HTTP: ${response.status} (Transacción Finalizada)`);
-        } catch (error) {
-            escribirConsola({ error: error.message }, "Error de Conexión:");
-        }
-    });
+        });
     </script>
 </body>
 </html>
