@@ -10,13 +10,56 @@
     <h1>🏦 Proyecto NeoBanco (Flux Bank)</h1>
     <p>Estado del Frontend: En construcción 🚧</p>
 
-    <!-- Botones de prueba crudos para conectar luego con tu backend -->
     <div style="margin-top: 30px; padding: 20px; border: 1px solid #fa8072; display: inline-block;">
         <h3>Consola de Pruebas API</h3>
-        <button id="btn-login">Probar Login</button>
-        <button id="btn-transfer">Probar Transferencia ACID</button>
-        <p id="respuesta-servidor" style="color: #fa8072;"></p>
+        <button id="btn-login" style="padding: 10px; cursor: pointer;">Probar Login (Dummy Data)</button>
+        <button id="btn-transfer" style="padding: 10px; cursor: pointer;">Probar Transferencia (Dummy Data)</button>
+        
+        <div style="margin-top: 20px; text-align: left; background: #111; padding: 15px; border-radius: 5px;">
+            <p style="margin: 0; color: #888; font-size: 12px;">Respuesta del servidor:</p>
+            <pre id="respuesta-servidor" style="color: #0f0; margin-top: 10px; white-space: pre-wrap;">Esperando acción...</pre>
+        </div>
     </div>
 
+    <script>
+        // ⚠️ REEMPLAZA ESTA URL CON TU LINK REAL DE DISCLOUD
+        const API_URL = "https://fluxbank.discloud.app"; 
+
+        const pantalla = document.getElementById('respuesta-servidor');
+
+        // Lógica del botón Login
+        document.getElementById('btn-login').addEventListener('click', async () => {
+            pantalla.innerText = "Conectando al servidor Discloud...";
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // Enviamos datos falsos solo para ver si el backend responde
+                    body: JSON.stringify({ email: "test@ejemplo.com", password: "password123" })
+                });
+                const data = await response.json();
+                pantalla.innerText = `Status: ${response.status}\n\n` + JSON.stringify(data, null, 2);
+            } catch (error) {
+                pantalla.innerText = "Error crítico de conexión (¿Está prendido el server?): " + error;
+            }
+        });
+
+        // Lógica del botón Transferencia
+        document.getElementById('btn-transfer').addEventListener('click', async () => {
+            pantalla.innerText = "Conectando al servidor Discloud...";
+            try {
+                const response = await fetch(`${API_URL}/api/banking/transfer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // Faltan datos intencionalmente para ver cómo reacciona tu validación de errores
+                    body: JSON.stringify({ amount: "50.00" }) 
+                });
+                const data = await response.json();
+                pantalla.innerText = `Status: ${response.status}\n\n` + JSON.stringify(data, null, 2);
+            } catch (error) {
+                pantalla.innerText = "Error crítico de conexión: " + error;
+            }
+        });
+    </script>
 </body>
 </html>
